@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>매매 체크리스트</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #1a1d24;
+    --panel-2: #232730;
+    --text: #e6e8eb;
+    --muted: #8a8f99;
+    --border: #2a2f3a;
+    --accent: #4f8cff;
+    --setup: #4f8cff;
+    --modifier: #f5c542;
+    --quality: #b8b8b8;
+    --hold: #ff6b6b;
+    --observe: #5dd39e;
+    --enter: #4f8cff;
+    --suspend: #ff8c42;
+    --danger: #ff4d4d;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", Roboto, sans-serif;
+    font-size: 16px;
+    overscroll-behavior: none;
+    user-select: none;
+  }
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+  header {
+    padding: 14px 18px; background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  header h1 { margin: 0; font-size: 17px; font-weight: 600; }
+  header .right { display: flex; gap: 8px; }
+  .icon-btn {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 12px; border-radius: 10px; font-size: 14px; cursor: pointer;
+  }
+  main { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  .section { background: var(--panel); border-radius: 14px; padding: 14px; }
+  .section-title { font-size: 12px; color: var(--muted); margin-bottom: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .mode-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .mode-btn {
+    padding: 22px 12px; border-radius: 14px; border: 2px solid transparent;
+    font-size: 18px; font-weight: 600; cursor: pointer; color: white;
+  }
+  .mode-btn.observe { background: #1f3a2c; border-color: var(--observe); color: var(--observe); }
+  .mode-btn.suspend { background: #3a2a1c; border-color: var(--suspend); color: var(--suspend); }
+  .mode-btn.enter { background: #1c2a3f; border-color: var(--enter); color: var(--enter); }
+  .mode-btn.active { transform: scale(0.98); filter: brightness(1.3); }
+
+  .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 10px 14px; border-radius: 999px; border: 1.5px solid var(--border);
+    background: var(--panel-2); color: var(--text); font-size: 14px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; position: relative;
+  }
+  .chip.k-setup { border-color: var(--setup); }
+  .chip.k-modifier { border-color: var(--modifier); }
+  .chip.k-quality { border-color: var(--quality); }
+  .chip.k-hold { border-color: var(--hold); }
+  .chip.selected.k-setup { background: var(--setup); color: white; }
+  .chip.selected.k-modifier { background: var(--modifier); color: #1a1d24; }
+  .chip.selected.k-quality { background: var(--quality); color: #1a1d24; }
+  .chip.selected.k-hold { background: var(--hold); color: white; }
+  .chip .x { display: none; font-weight: bold; opacity: 0.9; }
+  .chip.selected .x { display: inline; }
+  .chip.add { border-style: dashed; color: var(--muted); }
+
+  .confidence-row { display: flex; gap: 8px; justify-content: space-around; margin-top: 6px; }
+  .dot {
+    width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--border);
+    background: var(--panel-2); display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-weight: 600; cursor: pointer;
+  }
+  .dot.selected { background: var(--accent); color: white; border-color: var(--accent); }
+
+  textarea {
+    width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px; font-size: 14px; resize: none;
+    font-family: inherit;
+  }
+
+  .actions { display: flex; gap: 10px; }
+  .btn {
+    flex: 1; padding: 16px; border-radius: 12px; border: none; cursor: pointer;
+    font-size: 16px; font-weight: 600;
+  }
+  .btn.primary { background: var(--accent); color: white; }
+  .btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  .btn.danger { background: var(--danger); color: white; }
+
+  .feed-item {
+    padding: 10px 12px; background: var(--panel-2); border-radius: 10px;
+    border-left: 4px solid var(--border);
+    margin-bottom: 8px; font-size: 13px; line-height: 1.6;
+    white-space: pre-wrap; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .feed-item.m-observe { border-left-color: var(--observe); }
+  .feed-item.m-suspend { border-left-color: var(--suspend); }
+  .feed-item.m-enter { border-left-color: var(--enter); }
+  .feed-item .del {
+    float: right; color: var(--muted); font-size: 11px; cursor: pointer;
+    padding: 2px 8px; border: 1px solid var(--border); border-radius: 6px;
+  }
+
+  footer {
+    padding: 12px 16px; background: var(--panel); border-top: 1px solid var(--border);
+    display: flex; gap: 8px; justify-content: space-between;
+  }
+  footer .undo { flex: 1; }
+  footer .export { flex: 1; }
+  footer .manage { flex: 0 0 auto; padding: 12px 14px; }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100;
+    display: none; align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--panel); border-radius: 14px; padding: 18px;
+    width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+  }
+  .modal h2 { margin: 0 0 14px; font-size: 16px; }
+  .tag-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px; background: var(--panel-2); border-radius: 8px; margin-bottom: 6px;
+  }
+  .tag-row input[type="text"] {
+    flex: 1; background: transparent; color: var(--text); border: none; font-size: 14px;
+    padding: 4px;
+  }
+  .tag-row select {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    padding: 4px 6px; border-radius: 6px; font-size: 12px;
+  }
+  .tag-row .color-dot {
+    width: 16px; height: 16px; border-radius: 50%;
+  }
+  .toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: var(--panel-2); color: var(--text); padding: 10px 18px;
+    border-radius: 999px; border: 1px solid var(--border); font-size: 13px;
+    opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 200;
+  }
+  .toast.show { opacity: 1; }
+  .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>매매 체크리스트 <span id="modeBadge" style="color:var(--muted);font-weight:400;"></span></h1>
+  <div class="right">
+    <button class="icon-btn" id="manageBtn">⚙ 태그</button>
+  </div>
+</header>
+
+<main>
+  <div id="screen"></div>
+
+  <div class="section">
+    <div class="section-title">최근 활동</div>
+    <div id="feed"></div>
+  </div>
+</main>
+
+<footer>
+  <button class="btn ghost undo" id="undoBtn">↶ 방금 취소</button>
+  <button class="btn ghost export" id="exportBtn">⇩ CSV</button>
+</footer>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h2>태그 관리</h2>
+    <div id="tagList"></div>
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button class="btn primary" id="addTagBtn">+ 추가</button>
+      <button class="btn ghost" id="closeModalBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==============================
+// 상태
+// ==============================
+const STORAGE_KEY = "checklist_v0";
+const TAG_KEY = "checklist_tags_v0";
+const KINDS = {
+  setup: { label: "셋업", color: "var(--setup)" },
+  modifier: { label: "시장 질감", color: "var(--modifier)" },
+  quality: { label: "진입 품질", color: "var(--quality)" },
+  hold: { label: "보류 사유", color: "var(--hold)" }
+};
+
+// 시드 태그 — 본인이 나중에 추가/수정/삭제
+const SEED_TAGS = [
+  // 셋업 (예시 — 본인 것 추가 예정)
+  { id: "s1", name: "X_IPE", kind: "setup", active: true },
+  { id: "s2", name: "Z_IRE ROPE EXT", kind: "setup", active: true },
+  // 시장 질감
+  { id: "m1", name: "CHOPPY", kind: "modifier", active: true },
+  { id: "m2", name: "STRONG", kind: "modifier", active: true },
+  { id: "m3", name: "WEAK", kind: "modifier", active: true },
+  { id: "m4", name: "RANGY", kind: "modifier", active: true },
+  { id: "m5", name: "TRENDY", kind: "modifier", active: true },
+  { id: "m6", name: "FAST", kind: "modifier", active: true },
+  { id: "m7", name: "SLOW", kind: "modifier", active: true },
+  // 진입 품질
+  { id: "q1", name: "Premature", kind: "quality", active: true },
+  { id: "q2", name: "Impatient", kind: "quality", active: true },
+  { id: "q3", name: "Rash", kind: "quality", active: true },
+  { id: "q4", name: "Hasty", kind: "quality", active: true },
+  { id: "q5", name: "Late", kind: "quality", active: true },
+  { id: "q6", name: "Moderate", kind: "quality", active: true },
+  // 보류 사유 (예시 — 본인 것 추가 예정)
+  { id: "h1", name: "직전 CHOPPY", kind: "hold", active: true },
+  { id: "h2", name: "사이즈 부담", kind: "hold", active: true },
+  { id: "h3", name: "확신 부족", kind: "hold", active: true },
+];
+
+function loadTags() {
+  const raw = localStorage.getItem(TAG_KEY);
+  if (!raw) {
+    localStorage.setItem(TAG_KEY, JSON.stringify(SEED_TAGS));
+    return [...SEED_TAGS];
+  }
+  return JSON.parse(raw);
+}
+function saveTags(tags) { localStorage.setItem(TAG_KEY, JSON.stringify(tags)); }
+
+function loadEvents() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+function saveEvents(events) { localStorage.setItem(STORAGE_KEY, JSON.stringify(events)); }
+
+let tags = loadTags();
+let events = loadEvents();
+
+// 현재 작성 중 상태
+let draft = null; // { mode, selectedTags: {kind: [tagId,...]}, confidence, memo, tap_order: [tagId,...], startedAt }
+
+// ==============================
+// 유틸
+// ==============================
+function uid(prefix = "e") {
+  return prefix + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+function now() { return new Date(); }
+function fmtTime(d) {
+  const dt = (d instanceof Date) ? d : new Date(d);
+  return dt.toTimeString().slice(0,8);
+}
+function fmtDate(d) {
+  const dt = (d instanceof Date) ? d : new Date(d);
+  return dt.toISOString().slice(0,10);
+}
+function tagById(id) { return tags.find(t => t.id === id); }
+function tagsByKind(kind) { return tags.filter(t => t.kind === kind && t.active); }
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 1500);
+}
+
+// ==============================
+// 렌더링
+// ==============================
+const screen = document.getElementById("screen");
+const modeBadge = document.getElementById("modeBadge");
+
+function renderHome() {
+  modeBadge.textContent = "";
+  draft = null;
+  screen.innerHTML = `
+    <div class="section">
+      <div class="section-title">모드 선택</div>
+      <div class="mode-row">
+        <button class="mode-btn observe" data-mode="observe">관찰</button>
+        <button class="mode-btn suspend" data-mode="suspend">보류</button>
+        <button class="mode-btn enter" data-mode="enter">진입</button>
+      </div>
+    </div>
+  `;
+  screen.querySelectorAll(".mode-btn").forEach(b => {
+    b.onclick = () => startDraft(b.dataset.mode);
+  });
+  renderFeed();
+}
+
+function startDraft(mode) {
+  draft = {
+    mode,
+    selectedTags: { setup: [], modifier: [], quality: [], hold: [] },
+    tap_order: [],
+    confidence: null,
+    memo: "",
+    startedAt: now().toISOString(),
+    tap_times: [], // [{tagId, ts}, ...]
+  };
+  renderDraft();
+}
+
+function renderDraft() {
+  const m = draft.mode;
+  modeBadge.textContent = "· " + (m === "observe" ? "관찰" : m === "suspend" ? "보류" : "진입");
+
+  // 모드별로 보여줄 태그 종류 결정
+  const groups = [];
+  if (m === "observe") {
+    groups.push(["modifier", "시장 질감"]);
+  } else if (m === "suspend") {
+    groups.push(["setup", "셋업"]);
+    groups.push(["hold", "보류 사유"]);
+    groups.push(["modifier", "시장 질감"]);
+  } else if (m === "enter") {
+    groups.push(["setup", "셋업"]);
+    groups.push(["modifier", "시장 질감"]);
+    groups.push(["quality", "진입 품질"]);
+  }
+
+  let html = "";
+  for (const [kind, label] of groups) {
+    html += `
+      <div class="section">
+        <div class="section-title">${label}</div>
+        <div class="chip-group" data-kind="${kind}">
+          ${tagsByKind(kind).map(t => chipHTML(t)).join("")}
+          <span class="chip add" data-add="${kind}">+ 새로</span>
+        </div>
+      </div>
+    `;
+  }
+
+  if (m === "enter") {
+    html += `
+      <div class="section">
+        <div class="section-title">확신도</div>
+        <div class="confidence-row">
+          ${[1,2,3,4,5].map(n => `<div class="dot ${draft.confidence===n?'selected':''}" data-c="${n}">${n}</div>`).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  html += `
+    <div class="section">
+      <div class="section-title">메모 (선택)</div>
+      <textarea id="memoInput" rows="2" placeholder="자유 메모 — Siri 받아쓰기 가능">${draft.memo||""}</textarea>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="cancelDraft">취소</button>
+      <button class="btn primary" id="submitDraft">기록</button>
+    </div>
+  `;
+
+  screen.innerHTML = html;
+
+  // 칩 이벤트
+  screen.querySelectorAll(".chip").forEach(el => {
+    if (el.dataset.add) {
+      el.onclick = () => addTagInline(el.dataset.add);
+    } else if (el.dataset.tagid) {
+      el.onclick = () => toggleChip(el.dataset.tagid, el.dataset.kind);
+    }
+  });
+  // 확신도
+  screen.querySelectorAll(".dot").forEach(d => {
+    d.onclick = () => { draft.confidence = parseInt(d.dataset.c); renderDraft(); };
+  });
+  // 메모
+  const memoEl = document.getElementById("memoInput");
+  if (memoEl) memoEl.oninput = e => draft.memo = e.target.value;
+  // 액션
+  document.getElementById("cancelDraft").onclick = renderHome;
+  document.getElementById("submitDraft").onclick = submitDraft;
+}
+
+function chipHTML(t) {
+  const isSel = draft.selectedTags[t.kind].includes(t.id);
+  return `<span class="chip k-${t.kind} ${isSel?'selected':''}" data-tagid="${t.id}" data-kind="${t.kind}">${t.name}<span class="x">×</span></span>`;
+}
+
+function toggleChip(tagId, kind) {
+  // setup은 단일 선택 (모드별), modifier/quality/hold는 multi
+  const single = (kind === "setup");
+  const arr = draft.selectedTags[kind];
+  const idx = arr.indexOf(tagId);
+
+  if (single) {
+    if (idx >= 0) {
+      arr.length = 0;
+    } else {
+      arr.length = 0;
+      arr.push(tagId);
+      draft.tap_order.push(tagId);
+      draft.tap_times.push({ tagId, ts: now().toISOString() });
+    }
+  } else {
+    if (idx >= 0) {
+      arr.splice(idx, 1);
+      const oi = draft.tap_order.indexOf(tagId);
+      if (oi >= 0) draft.tap_order.splice(oi, 1);
+    } else {
+      arr.push(tagId);
+      draft.tap_order.push(tagId);
+      draft.tap_times.push({ tagId, ts: now().toISOString() });
+    }
+  }
+  renderDraft();
+}
+
+function addTagInline(kind) {
+  const name = prompt(`새 ${KINDS[kind].label} 이름:`);
+  if (!name || !name.trim()) return;
+  const newTag = { id: uid("t"), name: name.trim(), kind, active: true };
+  tags.push(newTag);
+  saveTags(tags);
+  // 즉시 선택
+  draft.selectedTags[kind].push(newTag.id);
+  draft.tap_order.push(newTag.id);
+  draft.tap_times.push({ tagId: newTag.id, ts: now().toISOString() });
+  renderDraft();
+  toast(`태그 추가: ${name}`);
+}
+
+function submitDraft() {
+  // 진입 모드는 셋업 필수
+  if (draft.mode === "enter" && draft.selectedTags.setup.length === 0) {
+    toast("셋업을 선택하세요");
+    return;
+  }
+  if (draft.mode === "suspend" && draft.selectedTags.setup.length === 0) {
+    toast("셋업을 선택하세요");
+    return;
+  }
+  const event = {
+    id: uid("e"),
+    ts: now().toISOString(),
+    mode: draft.mode,
+    setup_id: draft.selectedTags.setup[0] || null,
+    modifier_ids: [...draft.selectedTags.modifier],
+    quality_ids: [...draft.selectedTags.quality],
+    hold_ids: [...draft.selectedTags.hold],
+    tap_order: [...draft.tap_order],
+    tap_times: [...draft.tap_times],
+    confidence: draft.confidence,
+    memo: draft.memo,
+    startedAt: draft.startedAt,
+  };
+  events.push(event);
+  saveEvents(events);
+  toast("기록됨");
+  renderHome();
+}
+
+// ==============================
+// Feed (트리 표현)
+// ==============================
+function renderFeed() {
+  const feed = document.getElementById("feed");
+  if (events.length === 0) {
+    feed.innerHTML = `<div class="empty">아직 기록 없음</div>`;
+    return;
+  }
+  const recent = events.slice(-10).reverse();
+  feed.innerHTML = recent.map(eventToTree).join("");
+  feed.querySelectorAll(".del").forEach(el => {
+    el.onclick = (e) => {
+      e.stopPropagation();
+      const id = el.dataset.id;
+      if (confirm("이 기록 삭제?")) {
+        events = events.filter(x => x.id !== id);
+        saveEvents(events);
+        renderFeed();
+      }
+    };
+  });
+}
+
+function eventToTree(ev) {
+  const mLabel = ev.mode === "observe" ? "관찰" : ev.mode === "suspend" ? "보류" : "진입";
+  const setup = ev.setup_id ? (tagById(ev.setup_id)?.name || "?") : null;
+  const mods = ev.modifier_ids.map(id => tagById(id)?.name).filter(Boolean);
+  const quals = ev.quality_ids.map(id => tagById(id)?.name).filter(Boolean);
+  const holds = ev.hold_ids.map(id => tagById(id)?.name).filter(Boolean);
+
+  let body = `[${fmtTime(ev.ts)}] ${mLabel}`;
+  body += `<span class="del" data-id="${ev.id}">×</span>\n`;
+
+  if (setup) {
+    body += `  └ ${setup}\n`;
+  }
+  if (ev.mode === "enter") {
+    body += `     └ ENTRY\n`;
+  } else if (ev.mode === "suspend") {
+    body += `     └ HOLD\n`;
+  }
+  const sideTags = [];
+  if (mods.length) sideTags.push(...mods);
+  if (quals.length) sideTags.push(...quals);
+  if (holds.length) sideTags.push(...holds.map(h => "보류사유: " + h));
+  if (ev.confidence) sideTags.push(`확신도 ${ev.confidence}`);
+  if (sideTags.length) {
+    body += `        · ${sideTags.join("  · ")}\n`;
+  }
+  if (ev.memo) body += `        메모: ${ev.memo}\n`;
+
+  return `<div class="feed-item m-${ev.mode}">${body.trimEnd()}</div>`;
+}
+
+// ==============================
+// Undo / Export
+// ==============================
+document.getElementById("undoBtn").onclick = () => {
+  if (draft) {
+    // draft 안에서 마지막 탭 취소
+    if (draft.tap_order.length === 0) { toast("취소할 게 없음"); return; }
+    const lastTagId = draft.tap_order.pop();
+    draft.tap_times = draft.tap_times.filter(t => t.tagId !== lastTagId);
+    const t = tagById(lastTagId);
+    if (t && draft.selectedTags[t.kind]) {
+      const arr = draft.selectedTags[t.kind];
+      const i = arr.indexOf(lastTagId);
+      if (i >= 0) arr.splice(i, 1);
+    }
+    renderDraft();
+  } else {
+    // 마지막 기록 삭제
+    if (events.length === 0) { toast("기록 없음"); return; }
+    if (confirm("마지막 기록 취소?")) {
+      events.pop();
+      saveEvents(events);
+      renderFeed();
+      toast("마지막 기록 취소됨");
+    }
+  }
+};
+
+document.getElementById("exportBtn").onclick = () => {
+  if (events.length === 0) { toast("내보낼 기록 없음"); return; }
+  const header = ["id","ts","mode","setup","modifiers","qualities","hold_reasons","tap_order","confidence","memo"];
+  const rows = events.map(ev => [
+    ev.id,
+    ev.ts,
+    ev.mode,
+    ev.setup_id ? (tagById(ev.setup_id)?.name || "") : "",
+    ev.modifier_ids.map(id => tagById(id)?.name || "").join("|"),
+    ev.quality_ids.map(id => tagById(id)?.name || "").join("|"),
+    ev.hold_ids.map(id => tagById(id)?.name || "").join("|"),
+    ev.tap_order.map(id => tagById(id)?.name || "").join("→"),
+    ev.confidence ?? "",
+    (ev.memo || "").replace(/\n/g, " ").replace(/"/g, '""'),
+  ]);
+  const csv = [header, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `checklist_${fmtDate(now())}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("CSV 내려받음");
+};
+
+// ==============================
+// 태그 관리 모달
+// ==============================
+const modal = document.getElementById("modal");
+document.getElementById("manageBtn").onclick = openTagManager;
+document.getElementById("closeModalBtn").onclick = () => modal.classList.remove("open");
+document.getElementById("addTagBtn").onclick = () => {
+  const name = prompt("새 태그 이름:");
+  if (!name) return;
+  const kind = prompt("종류 (setup / modifier / quality / hold):", "setup");
+  if (!KINDS[kind]) { toast("알 수 없는 종류"); return; }
+  tags.push({ id: uid("t"), name: name.trim(), kind, active: true });
+  saveTags(tags);
+  openTagManager();
+};
+
+function openTagManager() {
+  const list = document.getElementById("tagList");
+  const grouped = {};
+  for (const k of Object.keys(KINDS)) grouped[k] = tags.filter(t => t.kind === k);
+
+  let html = "";
+  for (const [k, label] of Object.entries(KINDS)) {
+    html += `<div class="section-title" style="margin-top:8px">${label.label}</div>`;
+    if (grouped[k].length === 0) {
+      html += `<div class="empty">없음</div>`;
+    } else {
+      html += grouped[k].map(t => `
+        <div class="tag-row" data-id="${t.id}">
+          <input type="text" value="${t.name}" data-field="name" data-id="${t.id}">
+          <select data-field="kind" data-id="${t.id}">
+            ${Object.entries(KINDS).map(([kk,v]) => `<option value="${kk}" ${kk===t.kind?'selected':''}>${v.label}</option>`).join("")}
+          </select>
+          <button class="icon-btn" data-action="toggle" data-id="${t.id}">${t.active?'끄기':'켜기'}</button>
+          <button class="icon-btn" data-action="delete" data-id="${t.id}" style="color:var(--danger)">삭제</button>
+        </div>
+      `).join("");
+    }
+  }
+  list.innerHTML = html;
+
+  list.querySelectorAll("input[data-field='name']").forEach(el => {
+    el.onchange = () => {
+      const t = tagById(el.dataset.id);
+      if (t) { t.name = el.value.trim() || t.name; saveTags(tags); }
+    };
+  });
+  list.querySelectorAll("select[data-field='kind']").forEach(el => {
+    el.onchange = () => {
+      const t = tagById(el.dataset.id);
+      if (t) { t.kind = el.value; saveTags(tags); openTagManager(); }
+    };
+  });
+  list.querySelectorAll("button[data-action='toggle']").forEach(el => {
+    el.onclick = () => {
+      const t = tagById(el.dataset.id);
+      if (t) { t.active = !t.active; saveTags(tags); openTagManager(); }
+    };
+  });
+  list.querySelectorAll("button[data-action='delete']").forEach(el => {
+    el.onclick = () => {
+      if (!confirm("이 태그 영구 삭제? (과거 기록은 ID로 남아있음)")) return;
+      tags = tags.filter(t => t.id !== el.dataset.id);
+      saveTags(tags);
+      openTagManager();
+    };
+  });
+
+  modal.classList.add("open");
+}
+
+// 초기 렌더
+renderHome();
+</script>
+</body>
+</html>
