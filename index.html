@@ -45,18 +45,10 @@
     background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
     padding: 8px 12px; border-radius: 10px; font-size: 14px; cursor: pointer;
   }
-  main { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  main { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px; padding-bottom: 8px; }
   .section { background: var(--panel); border-radius: 14px; padding: 14px; }
   .section-title { font-size: 12px; color: var(--muted); margin-bottom: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
-  .mode-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-  .mode-btn {
-    padding: 22px 12px; border-radius: 14px; border: 2px solid transparent;
-    font-size: 18px; font-weight: 600; cursor: pointer; color: white;
-  }
-  .mode-btn.observe { background: #1f3a2c; border-color: var(--observe); color: var(--observe); }
-  .mode-btn.suspend { background: #3a2a1c; border-color: var(--suspend); color: var(--suspend); }
-  .mode-btn.enter { background: #1c2a3f; border-color: var(--enter); color: var(--enter); }
-  .mode-btn.active { transform: scale(0.98); filter: brightness(1.3); }
+  .section-title .hint { color: var(--muted); font-weight: 400; opacity: 0.7; margin-left: 8px; text-transform: none; letter-spacing: 0; }
 
   .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip {
@@ -90,14 +82,21 @@
     font-family: inherit;
   }
 
-  .actions { display: flex; gap: 10px; }
-  .btn {
-    flex: 1; padding: 16px; border-radius: 12px; border: none; cursor: pointer;
-    font-size: 16px; font-weight: 600;
+  /* Action bar (sticky bottom) */
+  .action-bar {
+    position: sticky; bottom: 0;
+    background: var(--bg); padding: 10px 16px 4px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+    border-top: 1px solid var(--border);
   }
-  .btn.primary { background: var(--accent); color: white; }
-  .btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
-  .btn.danger { background: var(--danger); color: white; }
+  .mode-btn {
+    padding: 20px 12px; border-radius: 14px; border: 2px solid transparent;
+    font-size: 18px; font-weight: 700; cursor: pointer; color: white;
+  }
+  .mode-btn.observe { background: #1f3a2c; border-color: var(--observe); color: var(--observe); }
+  .mode-btn.suspend { background: #3a2a1c; border-color: var(--suspend); color: var(--suspend); }
+  .mode-btn.enter { background: #1c2a3f; border-color: var(--enter); color: var(--enter); }
+  .mode-btn:active { transform: scale(0.97); filter: brightness(1.3); }
 
   .feed-item {
     padding: 10px 12px; background: var(--panel-2); border-radius: 10px;
@@ -114,12 +113,18 @@
   }
 
   footer {
-    padding: 12px 16px; background: var(--panel); border-top: 1px solid var(--border);
+    padding: 8px 16px 12px; background: var(--bg);
     display: flex; gap: 8px; justify-content: space-between;
   }
-  footer .undo { flex: 1; }
-  footer .export { flex: 1; }
-  footer .manage { flex: 0 0 auto; padding: 12px 14px; }
+  footer .btn { padding: 12px; font-size: 14px; }
+
+  .btn {
+    flex: 1; padding: 14px; border-radius: 12px; border: none; cursor: pointer;
+    font-size: 15px; font-weight: 600;
+  }
+  .btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  .btn.primary { background: var(--accent); color: white; }
+  .btn.danger { background: var(--danger); color: white; }
 
   /* Modal */
   .modal-bg {
@@ -144,11 +149,8 @@
     background: var(--bg); color: var(--text); border: 1px solid var(--border);
     padding: 4px 6px; border-radius: 6px; font-size: 12px;
   }
-  .tag-row .color-dot {
-    width: 16px; height: 16px; border-radius: 50%;
-  }
   .toast {
-    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    position: fixed; bottom: 130px; left: 50%; transform: translateX(-50%);
     background: var(--panel-2); color: var(--text); padding: 10px 18px;
     border-radius: 999px; border: 1px solid var(--border); font-size: 13px;
     opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 200;
@@ -160,24 +162,23 @@
 <body>
 
 <header>
-  <h1>매매 체크리스트 <span id="modeBadge" style="color:var(--muted);font-weight:400;"></span></h1>
+  <h1>매매 체크리스트</h1>
   <div class="right">
     <button class="icon-btn" id="manageBtn">⚙ 태그</button>
   </div>
 </header>
 
-<main>
-  <div id="screen"></div>
+<main id="screen"></main>
 
-  <div class="section">
-    <div class="section-title">최근 활동</div>
-    <div id="feed"></div>
-  </div>
-</main>
+<div class="action-bar">
+  <button class="mode-btn observe" data-mode="observe">관찰</button>
+  <button class="mode-btn suspend" data-mode="suspend">보류</button>
+  <button class="mode-btn enter" data-mode="enter">진입</button>
+</div>
 
 <footer>
-  <button class="btn ghost undo" id="undoBtn">↶ 방금 취소</button>
-  <button class="btn ghost export" id="exportBtn">⇩ CSV</button>
+  <button class="btn ghost" id="undoBtn">↶ 취소</button>
+  <button class="btn ghost" id="exportBtn">⇩ CSV</button>
 </footer>
 
 <div class="modal-bg" id="modal">
@@ -200,18 +201,15 @@
 const STORAGE_KEY = "checklist_v0";
 const TAG_KEY = "checklist_tags_v0";
 const KINDS = {
-  setup: { label: "셋업", color: "var(--setup)" },
-  modifier: { label: "시장 질감", color: "var(--modifier)" },
-  quality: { label: "진입 품질", color: "var(--quality)" },
-  hold: { label: "보류 사유", color: "var(--hold)" }
+  setup: { label: "셋업", hint: "보류·진입 시 필수" },
+  modifier: { label: "시장 질감", hint: "선택" },
+  quality: { label: "진입 품질", hint: "진입 시 자기평가" },
+  hold: { label: "보류 사유", hint: "보류 시" },
 };
 
-// 시드 태그 — 본인이 나중에 추가/수정/삭제
 const SEED_TAGS = [
-  // 셋업 (예시 — 본인 것 추가 예정)
   { id: "s1", name: "X_IPE", kind: "setup", active: true },
   { id: "s2", name: "Z_IRE ROPE EXT", kind: "setup", active: true },
-  // 시장 질감
   { id: "m1", name: "CHOPPY", kind: "modifier", active: true },
   { id: "m2", name: "STRONG", kind: "modifier", active: true },
   { id: "m3", name: "WEAK", kind: "modifier", active: true },
@@ -219,14 +217,12 @@ const SEED_TAGS = [
   { id: "m5", name: "TRENDY", kind: "modifier", active: true },
   { id: "m6", name: "FAST", kind: "modifier", active: true },
   { id: "m7", name: "SLOW", kind: "modifier", active: true },
-  // 진입 품질
   { id: "q1", name: "Premature", kind: "quality", active: true },
   { id: "q2", name: "Impatient", kind: "quality", active: true },
   { id: "q3", name: "Rash", kind: "quality", active: true },
   { id: "q4", name: "Hasty", kind: "quality", active: true },
   { id: "q5", name: "Late", kind: "quality", active: true },
   { id: "q6", name: "Moderate", kind: "quality", active: true },
-  // 보류 사유 (예시 — 본인 것 추가 예정)
   { id: "h1", name: "직전 CHOPPY", kind: "hold", active: true },
   { id: "h2", name: "사이즈 부담", kind: "hold", active: true },
   { id: "h3", name: "확신 부족", kind: "hold", active: true },
@@ -234,111 +230,54 @@ const SEED_TAGS = [
 
 function loadTags() {
   const raw = localStorage.getItem(TAG_KEY);
-  if (!raw) {
-    localStorage.setItem(TAG_KEY, JSON.stringify(SEED_TAGS));
-    return [...SEED_TAGS];
-  }
+  if (!raw) { localStorage.setItem(TAG_KEY, JSON.stringify(SEED_TAGS)); return [...SEED_TAGS]; }
   return JSON.parse(raw);
 }
 function saveTags(tags) { localStorage.setItem(TAG_KEY, JSON.stringify(tags)); }
-
-function loadEvents() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  return raw ? JSON.parse(raw) : [];
-}
+function loadEvents() { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; }
 function saveEvents(events) { localStorage.setItem(STORAGE_KEY, JSON.stringify(events)); }
 
 let tags = loadTags();
 let events = loadEvents();
+let draft = newDraft();
 
-// 현재 작성 중 상태
-let draft = null; // { mode, selectedTags: {kind: [tagId,...]}, confidence, memo, tap_order: [tagId,...], startedAt }
+function newDraft() {
+  return {
+    selectedTags: { setup: [], modifier: [], quality: [], hold: [] },
+    tap_order: [],
+    tap_times: [],
+    confidence: null,
+    memo: "",
+    startedAt: new Date().toISOString(),
+  };
+}
 
 // ==============================
 // 유틸
 // ==============================
-function uid(prefix = "e") {
-  return prefix + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
-}
+function uid(prefix = "e") { return prefix + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function now() { return new Date(); }
-function fmtTime(d) {
-  const dt = (d instanceof Date) ? d : new Date(d);
-  return dt.toTimeString().slice(0,8);
-}
-function fmtDate(d) {
-  const dt = (d instanceof Date) ? d : new Date(d);
-  return dt.toISOString().slice(0,10);
-}
+function fmtTime(d) { return new Date(d).toTimeString().slice(0,8); }
+function fmtDate(d) { return new Date(d).toISOString().slice(0,10); }
 function tagById(id) { return tags.find(t => t.id === id); }
 function tagsByKind(kind) { return tags.filter(t => t.kind === kind && t.active); }
 function toast(msg) {
   const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
+  t.textContent = msg; t.classList.add("show");
   setTimeout(() => t.classList.remove("show"), 1500);
 }
 
 // ==============================
-// 렌더링
+// 메인 렌더
 // ==============================
 const screen = document.getElementById("screen");
-const modeBadge = document.getElementById("modeBadge");
 
-function renderHome() {
-  modeBadge.textContent = "";
-  draft = null;
-  screen.innerHTML = `
-    <div class="section">
-      <div class="section-title">모드 선택</div>
-      <div class="mode-row">
-        <button class="mode-btn observe" data-mode="observe">관찰</button>
-        <button class="mode-btn suspend" data-mode="suspend">보류</button>
-        <button class="mode-btn enter" data-mode="enter">진입</button>
-      </div>
-    </div>
-  `;
-  screen.querySelectorAll(".mode-btn").forEach(b => {
-    b.onclick = () => startDraft(b.dataset.mode);
-  });
-  renderFeed();
-}
-
-function startDraft(mode) {
-  draft = {
-    mode,
-    selectedTags: { setup: [], modifier: [], quality: [], hold: [] },
-    tap_order: [],
-    confidence: null,
-    memo: "",
-    startedAt: now().toISOString(),
-    tap_times: [], // [{tagId, ts}, ...]
-  };
-  renderDraft();
-}
-
-function renderDraft() {
-  const m = draft.mode;
-  modeBadge.textContent = "· " + (m === "observe" ? "관찰" : m === "suspend" ? "보류" : "진입");
-
-  // 모드별로 보여줄 태그 종류 결정
-  const groups = [];
-  if (m === "observe") {
-    groups.push(["modifier", "시장 질감"]);
-  } else if (m === "suspend") {
-    groups.push(["setup", "셋업"]);
-    groups.push(["hold", "보류 사유"]);
-    groups.push(["modifier", "시장 질감"]);
-  } else if (m === "enter") {
-    groups.push(["setup", "셋업"]);
-    groups.push(["modifier", "시장 질감"]);
-    groups.push(["quality", "진입 품질"]);
-  }
-
+function render() {
   let html = "";
-  for (const [kind, label] of groups) {
+  for (const [kind, info] of Object.entries(KINDS)) {
     html += `
       <div class="section">
-        <div class="section-title">${label}</div>
+        <div class="section-title">${info.label}<span class="hint">${info.hint}</span></div>
         <div class="chip-group" data-kind="${kind}">
           ${tagsByKind(kind).map(t => chipHTML(t)).join("")}
           <span class="chip add" data-add="${kind}">+ 새로</span>
@@ -347,25 +286,20 @@ function renderDraft() {
     `;
   }
 
-  if (m === "enter") {
-    html += `
-      <div class="section">
-        <div class="section-title">확신도</div>
-        <div class="confidence-row">
-          ${[1,2,3,4,5].map(n => `<div class="dot ${draft.confidence===n?'selected':''}" data-c="${n}">${n}</div>`).join("")}
-        </div>
-      </div>
-    `;
-  }
-
   html += `
     <div class="section">
-      <div class="section-title">메모 (선택)</div>
-      <textarea id="memoInput" rows="2" placeholder="자유 메모 — Siri 받아쓰기 가능">${draft.memo||""}</textarea>
+      <div class="section-title">확신도 <span class="hint">진입 시</span></div>
+      <div class="confidence-row">
+        ${[1,2,3,4,5].map(n => `<div class="dot ${draft.confidence===n?'selected':''}" data-c="${n}">${n}</div>`).join("")}
+      </div>
     </div>
-    <div class="actions">
-      <button class="btn ghost" id="cancelDraft">취소</button>
-      <button class="btn primary" id="submitDraft">기록</button>
+    <div class="section">
+      <div class="section-title">메모 <span class="hint">선택 / 음성 입력 가능</span></div>
+      <textarea id="memoInput" rows="2" placeholder="자유 메모">${draft.memo||""}</textarea>
+    </div>
+    <div class="section">
+      <div class="section-title">최근 활동</div>
+      <div id="feed"></div>
     </div>
   `;
 
@@ -381,14 +315,16 @@ function renderDraft() {
   });
   // 확신도
   screen.querySelectorAll(".dot").forEach(d => {
-    d.onclick = () => { draft.confidence = parseInt(d.dataset.c); renderDraft(); };
+    d.onclick = () => {
+      draft.confidence = (draft.confidence === parseInt(d.dataset.c)) ? null : parseInt(d.dataset.c);
+      render();
+    };
   });
   // 메모
   const memoEl = document.getElementById("memoInput");
   if (memoEl) memoEl.oninput = e => draft.memo = e.target.value;
-  // 액션
-  document.getElementById("cancelDraft").onclick = renderHome;
-  document.getElementById("submitDraft").onclick = submitDraft;
+
+  renderFeed();
 }
 
 function chipHTML(t) {
@@ -397,8 +333,7 @@ function chipHTML(t) {
 }
 
 function toggleChip(tagId, kind) {
-  // setup은 단일 선택 (모드별), modifier/quality/hold는 multi
-  const single = (kind === "setup");
+  const single = (kind === "setup"); // 셋업은 단일
   const arr = draft.selectedTags[kind];
   const idx = arr.indexOf(tagId);
 
@@ -422,7 +357,7 @@ function toggleChip(tagId, kind) {
       draft.tap_times.push({ tagId, ts: now().toISOString() });
     }
   }
-  renderDraft();
+  render();
 }
 
 function addTagInline(kind) {
@@ -431,28 +366,32 @@ function addTagInline(kind) {
   const newTag = { id: uid("t"), name: name.trim(), kind, active: true };
   tags.push(newTag);
   saveTags(tags);
-  // 즉시 선택
   draft.selectedTags[kind].push(newTag.id);
   draft.tap_order.push(newTag.id);
   draft.tap_times.push({ tagId: newTag.id, ts: now().toISOString() });
-  renderDraft();
+  render();
   toast(`태그 추가: ${name}`);
 }
 
-function submitDraft() {
-  // 진입 모드는 셋업 필수
-  if (draft.mode === "enter" && draft.selectedTags.setup.length === 0) {
-    toast("셋업을 선택하세요");
+// ==============================
+// 액션 (모드 = 커밋)
+// ==============================
+function commitWithMode(mode) {
+  // 검증: 셋업 필수 여부
+  if (mode !== "observe" && draft.selectedTags.setup.length === 0) {
+    toast("셋업 먼저 선택하세요");
     return;
   }
-  if (draft.mode === "suspend" && draft.selectedTags.setup.length === 0) {
-    toast("셋업을 선택하세요");
+  // 관찰 모드에 아무 태그도 없으면 비어 있음
+  const anySelected = Object.values(draft.selectedTags).some(a => a.length > 0);
+  if (mode === "observe" && !anySelected && !draft.memo.trim()) {
+    toast("태그 또는 메모 하나는 필요");
     return;
   }
   const event = {
     id: uid("e"),
     ts: now().toISOString(),
-    mode: draft.mode,
+    mode,
     setup_id: draft.selectedTags.setup[0] || null,
     modifier_ids: [...draft.selectedTags.modifier],
     quality_ids: [...draft.selectedTags.quality],
@@ -465,15 +404,21 @@ function submitDraft() {
   };
   events.push(event);
   saveEvents(events);
-  toast("기록됨");
-  renderHome();
+  toast(`${mode==="observe"?"관찰":mode==="suspend"?"보류":"진입"} 기록됨`);
+  draft = newDraft();
+  render();
 }
+
+document.querySelectorAll(".action-bar .mode-btn").forEach(b => {
+  b.onclick = () => commitWithMode(b.dataset.mode);
+});
 
 // ==============================
 // Feed (트리 표현)
 // ==============================
 function renderFeed() {
   const feed = document.getElementById("feed");
+  if (!feed) return;
   if (events.length === 0) {
     feed.innerHTML = `<div class="empty">아직 기록 없음</div>`;
     return;
@@ -503,22 +448,16 @@ function eventToTree(ev) {
   let body = `[${fmtTime(ev.ts)}] ${mLabel}`;
   body += `<span class="del" data-id="${ev.id}">×</span>\n`;
 
-  if (setup) {
-    body += `  └ ${setup}\n`;
-  }
-  if (ev.mode === "enter") {
-    body += `     └ ENTRY\n`;
-  } else if (ev.mode === "suspend") {
-    body += `     └ HOLD\n`;
-  }
+  if (setup) body += `  └ ${setup}\n`;
+  if (ev.mode === "enter") body += `     └ ENTRY\n`;
+  else if (ev.mode === "suspend") body += `     └ HOLD\n`;
+
   const sideTags = [];
   if (mods.length) sideTags.push(...mods);
   if (quals.length) sideTags.push(...quals);
   if (holds.length) sideTags.push(...holds.map(h => "보류사유: " + h));
   if (ev.confidence) sideTags.push(`확신도 ${ev.confidence}`);
-  if (sideTags.length) {
-    body += `        · ${sideTags.join("  · ")}\n`;
-  }
+  if (sideTags.length) body += `        · ${sideTags.join("  · ")}\n`;
   if (ev.memo) body += `        메모: ${ev.memo}\n`;
 
   return `<div class="feed-item m-${ev.mode}">${body.trimEnd()}</div>`;
@@ -528,27 +467,32 @@ function eventToTree(ev) {
 // Undo / Export
 // ==============================
 document.getElementById("undoBtn").onclick = () => {
-  if (draft) {
-    // draft 안에서 마지막 탭 취소
-    if (draft.tap_order.length === 0) { toast("취소할 게 없음"); return; }
-    const lastTagId = draft.tap_order.pop();
-    draft.tap_times = draft.tap_times.filter(t => t.tagId !== lastTagId);
-    const t = tagById(lastTagId);
-    if (t && draft.selectedTags[t.kind]) {
-      const arr = draft.selectedTags[t.kind];
-      const i = arr.indexOf(lastTagId);
-      if (i >= 0) arr.splice(i, 1);
+  // draft에 선택된 게 있으면 마지막 탭 취소
+  if (draft.tap_order.length > 0 || draft.confidence != null || draft.memo) {
+    if (draft.tap_order.length > 0) {
+      const lastTagId = draft.tap_order.pop();
+      draft.tap_times = draft.tap_times.filter(t => t.tagId !== lastTagId);
+      const t = tagById(lastTagId);
+      if (t && draft.selectedTags[t.kind]) {
+        const arr = draft.selectedTags[t.kind];
+        const i = arr.indexOf(lastTagId);
+        if (i >= 0) arr.splice(i, 1);
+      }
+    } else if (draft.confidence != null) {
+      draft.confidence = null;
+    } else if (draft.memo) {
+      draft.memo = "";
     }
-    renderDraft();
-  } else {
-    // 마지막 기록 삭제
-    if (events.length === 0) { toast("기록 없음"); return; }
-    if (confirm("마지막 기록 취소?")) {
-      events.pop();
-      saveEvents(events);
-      renderFeed();
-      toast("마지막 기록 취소됨");
-    }
+    render();
+    return;
+  }
+  // draft가 비어 있으면 마지막 기록 삭제
+  if (events.length === 0) { toast("취소할 게 없음"); return; }
+  if (confirm("마지막 기록 취소?")) {
+    events.pop();
+    saveEvents(events);
+    renderFeed();
+    toast("마지막 기록 취소됨");
   }
 };
 
@@ -556,9 +500,7 @@ document.getElementById("exportBtn").onclick = () => {
   if (events.length === 0) { toast("내보낼 기록 없음"); return; }
   const header = ["id","ts","mode","setup","modifiers","qualities","hold_reasons","tap_order","confidence","memo"];
   const rows = events.map(ev => [
-    ev.id,
-    ev.ts,
-    ev.mode,
+    ev.id, ev.ts, ev.mode,
     ev.setup_id ? (tagById(ev.setup_id)?.name || "") : "",
     ev.modifier_ids.map(id => tagById(id)?.name || "").join("|"),
     ev.quality_ids.map(id => tagById(id)?.name || "").join("|"),
@@ -571,9 +513,7 @@ document.getElementById("exportBtn").onclick = () => {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url;
-  a.download = `checklist_${fmtDate(now())}.csv`;
-  a.click();
+  a.href = url; a.download = `checklist_${fmtDate(now())}.csv`; a.click();
   URL.revokeObjectURL(url);
   toast("CSV 내려받음");
 };
@@ -600,8 +540,8 @@ function openTagManager() {
   for (const k of Object.keys(KINDS)) grouped[k] = tags.filter(t => t.kind === k);
 
   let html = "";
-  for (const [k, label] of Object.entries(KINDS)) {
-    html += `<div class="section-title" style="margin-top:8px">${label.label}</div>`;
+  for (const [k, info] of Object.entries(KINDS)) {
+    html += `<div class="section-title" style="margin-top:8px">${info.label}</div>`;
     if (grouped[k].length === 0) {
       html += `<div class="empty">없음</div>`;
     } else {
@@ -650,7 +590,7 @@ function openTagManager() {
 }
 
 // 초기 렌더
-renderHome();
+render();
 </script>
 </body>
 </html>
