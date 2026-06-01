@@ -411,15 +411,59 @@ function toggleChip(tagId, kind) {
 }
 
 function addTagInline(kind) {
-  const name = prompt(`새 ${KINDS[kind].label} 이름:`);
-  if (!name || !name.trim()) return;
-  const t = { id: uid("t"), name: name.trim(), kind, active: true };
-  tags.push(t); saveTags(tags);
-  draft[kind].push(t.id);
-  draft.tap_order.push(t.id);
-  draft.tap_times.push({ tagId: t.id, ts: now().toISOString() });
+  // 인라인 입력칸으로 교체: 그 자리에 input 띄우고 Enter로 추가
+  const stripEl = tagPanel.querySelector(`.chip-strip[data-kind="${kind}"]`);
+  if (!stripEl) return;
+  const existing = stripEl.querySelector("input.inline-add");
+  if (existing) { existing.focus(); return; }
+  const input = document.createElement("input");
+  input.className = "inline-add";
+  input.type = "text";
+  input.placeholder = `${kind} 이름 (콤마로 여러 개)…`;
+  input.style.cssText = "background:#0b0d12;color:#e6e8eb;border:1.5px dashed var(--accent);border-radius:999px;padding:6px 10px;font-size:12.5px;outline:none;min-width:130px;flex-shrink:0;";
+  // + 새로 칩 앞에 삽입
+  const addBtn = stripEl.querySelector(".chip.add");
+  stripEl.insertBefore(input, addBtn);
+  input.focus();
+  input.onkeydown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commitInlineAdd(kind, input.value);
+    } else if (e.key === "Escape") {
+      input.remove();
+    }
+  };
+  input.onblur = () => {
+    if (input.value.trim()) commitInlineAdd(kind, input.value);
+    else input.remove();
+  };
+}
+
+function commitInlineAdd(kind, raw) {
+  const names = raw.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+  if (names.length === 0) return;
+  const added = [];
+  for (const name of names) {
+    // 중복 체크 (같은 kind 안에서)
+    const existing = tags.find(t => t.kind === kind && t.name === name && t.active);
+    if (existing) {
+      if (!draft[kind].includes(existing.id)) {
+        draft[kind].push(existing.id);
+        draft.tap_order.push(existing.id);
+        draft.tap_times.push({ tagId: existing.id, ts: now().toISOString() });
+      }
+      continue;
+    }
+    const t = { id: uid("t"), name, kind, active: true };
+    tags.push(t);
+    draft[kind].push(t.id);
+    draft.tap_order.push(t.id);
+    draft.tap_times.push({ tagId: t.id, ts: now().toISOString() });
+    added.push(name);
+  }
+  saveTags(tags);
   renderAll();
-  toast(`태그 추가: ${name}`);
+  if (added.length) toast(`${added.length}개 추가됨`);
 }
 
 // ==============================
@@ -659,6 +703,22 @@ document.getElementById("addTagBtn").onclick = () => {
 function openTagManager() {
   const list = document.getElementById("tagList");
   let html = "";
+
+  // 벌크 추가 영역
+  html += `
+    <div style="background:#0e1015;border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:12px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase;">여러 개 한 번에 추가</div>
+      <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
+        <select id="bulkKind" style="background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px;border-radius:6px;font-size:12px;">
+          ${Object.entries(KINDS).map(([k,v]) => `<option value="${k}">${k} — ${v.label.split(" ")[0]}</option>`).join("")}
+        </select>
+        <button class="btn primary" id="bulkAddBtn" style="padding:7px 14px;font-size:12px;flex:0 0 auto;">+ 일괄 추가</button>
+      </div>
+      <textarea id="bulkInput" rows="4" placeholder="이름 한 줄에 하나, 또는 콤마로 구분&#10;예:&#10;Z_PHASE(2>1)&#10;Z_PHASE(3>2), Z_PHASE(4>3)" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:12px;font-family:ui-monospace,monospace;"></textarea>
+    </div>
+  `;
+
+  // 기존 태그 편집
   for (const [k, info] of Object.entries(KINDS)) {
     html += `<div class="section-title" style="margin-top:8px">${info.label}</div>`;
     const arr = tags.filter(t => t.kind === k);
@@ -675,6 +735,23 @@ function openTagManager() {
     `).join("");
   }
   list.innerHTML = html;
+
+  // 벌크 추가 버튼
+  document.getElementById("bulkAddBtn").onclick = () => {
+    const kind = document.getElementById("bulkKind").value;
+    const raw = document.getElementById("bulkInput").value;
+    const names = raw.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+    if (names.length === 0) { toast("이름 입력"); return; }
+    let added = 0, skipped = 0;
+    for (const name of names) {
+      if (tags.find(t => t.kind === kind && t.name === name)) { skipped++; continue; }
+      tags.push({ id: uid("t"), name, kind, active: true });
+      added++;
+    }
+    saveTags(tags);
+    toast(`${added}개 추가${skipped>0?`, ${skipped}개 중복 스킵`:""}`);
+    openTagManager();
+  };
 
   list.querySelectorAll("input[data-field='name']").forEach(el => {
     el.onchange = () => {
