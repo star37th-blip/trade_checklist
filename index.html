@@ -335,7 +335,34 @@ function now() { return new Date(); }
 function fmtTime(d) { return new Date(d).toTimeString().slice(0,8); }
 function fmtDate(d) { return new Date(d).toISOString().slice(0,10); }
 function tagById(id) { return tags.find(t => t.id === id); }
-function tagsByKind(kind) { return tags.filter(t => t.kind === kind && t.active); }
+function tagsByKind(kind) {
+  return tags.filter(t => t.kind === kind && t.active)
+    .sort((a,b) => a.name.localeCompare(b.name, "en", {numeric: true}));
+}
+
+// prefix = 이름에서 첫 = ( [ < 또는 공백 직전까지
+function tagPrefix(name) {
+  const m = name.match(/^([A-Za-z_][A-Za-z0-9_]*)/);
+  return m ? m[1] : name;
+}
+
+// 결정적 해시 → 팔레트 색상
+const PREFIX_PALETTE = [
+  "#6ea8ff", "#a78bfa", "#f5c542", "#5dd39e", "#ff8c42",
+  "#ff6b6b", "#e879f9", "#22d3ee", "#fb7185", "#84cc16",
+  "#fbbf24", "#60a5fa", "#c084fc", "#34d399", "#f472b6"
+];
+function prefixColor(prefix) {
+  let h = 0;
+  for (let i = 0; i < prefix.length; i++) h = ((h << 5) - h + prefix.charCodeAt(i)) | 0;
+  return PREFIX_PALETTE[Math.abs(h) % PREFIX_PALETTE.length];
+}
+function isLightColor(hex) {
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return (r*0.299 + g*0.587 + b*0.114) > 160;
+}
 function toast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg; t.classList.add("show");
@@ -389,7 +416,13 @@ function renderTagPanel() {
 
 function chipHTML(t) {
   const isSel = draft[t.kind].includes(t.id);
-  return `<span class="chip k-${t.kind} ${isSel?'selected':''}" data-tagid="${t.id}" data-kind="${t.kind}">${t.name}<span class="x">×</span></span>`;
+  const pre = tagPrefix(t.name);
+  const color = prefixColor(pre);
+  const fg = isLightColor(color) ? "#1a1d24" : "white";
+  const style = isSel
+    ? `border-color:${color};background:${color};color:${fg};`
+    : `border-color:${color};color:${color};background:transparent;`;
+  return `<span class="chip ${isSel?'selected':''}" data-tagid="${t.id}" data-kind="${t.kind}" style="${style}">${t.name}<span class="x">×</span></span>`;
 }
 
 function toggleChip(tagId, kind) {
@@ -718,21 +751,26 @@ function openTagManager() {
     </div>
   `;
 
-  // 기존 태그 편집
+  // 기존 태그 편집 (정렬 + prefix 색상 점)
   for (const [k, info] of Object.entries(KINDS)) {
     html += `<div class="section-title" style="margin-top:8px">${info.label}</div>`;
-    const arr = tags.filter(t => t.kind === k);
+    const arr = tags.filter(t => t.kind === k)
+      .sort((a,b) => a.name.localeCompare(b.name, "en", {numeric: true}));
     if (arr.length === 0) html += `<div class="empty">없음</div>`;
-    else html += arr.map(t => `
-      <div class="tag-row" data-id="${t.id}">
-        <input type="text" value="${t.name}" data-field="name" data-id="${t.id}">
-        <select data-field="kind" data-id="${t.id}">
-          ${Object.entries(KINDS).map(([kk,v]) => `<option value="${kk}" ${kk===t.kind?'selected':''}>${kk}</option>`).join("")}
-        </select>
-        <button class="icon-btn" data-action="toggle" data-id="${t.id}">${t.active?'끄기':'켜기'}</button>
-        <button class="icon-btn danger" data-action="delete" data-id="${t.id}">삭제</button>
-      </div>
-    `).join("");
+    else html += arr.map(t => {
+      const c = prefixColor(tagPrefix(t.name));
+      return `
+        <div class="tag-row" data-id="${t.id}">
+          <span style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0;"></span>
+          <input type="text" value="${t.name}" data-field="name" data-id="${t.id}">
+          <select data-field="kind" data-id="${t.id}">
+            ${Object.entries(KINDS).map(([kk,v]) => `<option value="${kk}" ${kk===t.kind?'selected':''}>${kk}</option>`).join("")}
+          </select>
+          <button class="icon-btn" data-action="toggle" data-id="${t.id}">${t.active?'끄기':'켜기'}</button>
+          <button class="icon-btn danger" data-action="delete" data-id="${t.id}">삭제</button>
+        </div>
+      `;
+    }).join("");
   }
   list.innerHTML = html;
 
